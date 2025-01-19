@@ -1,9 +1,3 @@
-import os
-import faiss
-import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from sentence_transformers import SentenceTransformer
-
 # Step 1: Load the documents
 def load_documents_from_folder(folder_path):
     documents = []
@@ -43,14 +37,14 @@ def generate_answer(question, context, model_name):
 # Main Function
 def main():
     # Load and prepare documents
-    file_path = "/Users/sakshivatsa/Downloads/RegNLPDocuments"
+    file_path = "/content/gdrive/My Drive/RegNLPDocuments"
     documents = load_documents_from_folder(file_path)
 
     print('Load documents step complete')
     
     # Use Sentence Transformers for embeddings
-    embedding_model = SentenceTransformer("models/paraphrase-MiniLM-L6-v2")
-    print('Model loaded')
+    embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L6-v2")
+    print("Model loaded successfully.")
     
     document_embeddings = embed_documents(documents, embedding_model)
     print('Document embeddings created')
@@ -71,7 +65,7 @@ def main():
         context = " ".join(top_documents)
 
         # Generate an answer
-        answer = generate_answer(query, context)
+        answer = generate_answer(query, context, embedding_model)
         print(f"Answer: {answer}\n")
 
 if __name__ == "__main__":
