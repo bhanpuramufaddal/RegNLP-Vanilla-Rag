@@ -1,3 +1,9 @@
+import os
+import faiss
+import numpy as np
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from sentence_transformers import SentenceTransformer
+
 # Step 1: Load the documents
 def load_documents_from_folder(folder_path):
     documents = []
@@ -25,13 +31,26 @@ def retrieve_documents(query, embedding_model, index, documents, top_k=3):
     distances, indices = index.search(query_embedding, top_k)
     return [documents[i] for i in indices[0]]
 
-# Step 5: Generate Answer Using a Language Model
+# # Step 5: Generate Answer Using a Language Model
 def generate_answer(question, context, model_name):
+    # Load the tokenizer and model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
+
+    # Create the text-generation pipeline
     nlp_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
+    
+    # Prepare input text
     input_text = f"Answer this question based on the context:\n\nContext: {context}\n\nQuestion: {question}\nAnswer:"
-    response = nlp_pipeline(input_text, max_length=200, num_return_sequences=1)
+    
+    # Generate response
+    response = nlp_pipeline(
+        input_text,
+        max_new_tokens=150,  
+        truncation=True,     
+        pad_token_id=tokenizer.eos_token_id  
+    )
+
     return response[0]["generated_text"]
 
 # Main Function
@@ -41,7 +60,7 @@ def main():
     documents = load_documents_from_folder(file_path)
 
     print('Load documents step complete')
-    
+
     # Use Sentence Transformers for embeddings
     embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L6-v2")
     print("Model loaded successfully.")
@@ -53,27 +72,30 @@ def main():
     faiss_index = build_faiss_index(document_embeddings)
     print('Faiss Index - ', faiss_index)
 
-    # Interact with the system
-    print("Vanilla RAG System is ready. Type your question or 'exit' to quit.")
-    while True:
-        query = input("Question: ")
-        if query.lower() == "exit":
-            break
+    query = "Question: What is the legal basis for ADGM’s legal system?"
 
-        # Retrieve relevant documents
-        top_documents = retrieve_documents(query, embedding_model, faiss_index, documents)
-        context = " ".join(top_documents)
+    # Retrieve relevant documents
+    top_documents = retrieve_documents(query, embedding_model, faiss_index, documents)
+    context = " ".join(top_documents)
 
-        # Generate an answer
-        answer = generate_answer(query, context, embedding_model)
-        print(f"Answer: {answer}\n")
+    # Generate an answer
+    answer = generate_answer(query, context, "gpt2")
+    print(f"Answer: {answer}\n")
+
 
 if __name__ == "__main__":
     main()
 
 
+# Example Output by Model - 
 
+# Question: What is the legal basis for ADGM’s legal system?
 
-
-
+# Answer: The law must be interpreted, understood and adopted and relevant. ADGM requires a'system to be followed' which 
+# follows an established and consistent set of common law statutory rules that is based on the rules of common legal practice, 
+# as implemented by the applicant and adopted by the Government of the Commonwealth or other responsible statutory authorities 
+# (i.e. the Council of the United Kingdom). The use of common law statutory code legislation is the best way for ADRM to identify, 
+# identify and implement common law rule issues and to identify any potential unintended consequences. These rules generally have no major 
+# conflict of interest and thus should be disregarded. In addition, the use of common law statutory code legislation should generally be 
+# adhered to for the sole purpose of preventing unlawful and unreasonable
 
